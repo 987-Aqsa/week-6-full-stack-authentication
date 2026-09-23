@@ -1,8 +1,17 @@
 import TaskItem from "./TaskItem";
 
-function TaskList({ tasks, onDelete }) {
+function TaskList({
+  tasks,
+  onDelete,
+  onEdit,
+  onToggleComplete
+}) {
   if (tasks.length === 0) {
-    return <p className="empty-message">No tasks found.</p>;
+    return (
+      <p className="no-tasks">
+        No tasks yet. Add your first task!
+      </p>
+    );
   }
 
   return (
@@ -12,6 +21,8 @@ function TaskList({ tasks, onDelete }) {
           key={task._id}
           task={task}
           onDelete={onDelete}
+          onEdit={onEdit}
+          onToggleComplete={onToggleComplete}
         />
       ))}
     </div>

@@ -4,6 +4,8 @@ function TaskForm({
   setTitle,
   setDescription,
   onAdd,
+  isEditing,
+  onCancel
 }) {
   return (
     <form onSubmit={onAdd} className="task-form">
@@ -20,9 +22,23 @@ function TaskForm({
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         required
-      />
+      ></textarea>
 
-      <button type="submit">Add Task</button>
+      <div className="form-buttons">
+        <button type="submit">
+          {isEditing ? "Update Task" : "Add Task"}
+        </button>
+
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="cancel-button"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
     </form>
   );
 }

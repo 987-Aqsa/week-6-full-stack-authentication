@@ -5,7 +5,7 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api/tasks";
+const API_URL = `${import.meta.env.VITE_API_URL}/api/tasks`;
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -19,6 +19,8 @@ function App() {
   );
 
   const [showSignup, setShowSignup] = useState(false);
+
+  const [editingTask, setEditingTask] = useState(null);
 
   // Fetch Tasks
   useEffect(() => {
@@ -60,6 +62,11 @@ function App() {
   const handleAddTask = async (e) => {
     e.preventDefault();
 
+    if (!title.trim() || !description.trim()) {
+      setError("Please enter title and description");
+      return;
+    }
+
     const token = localStorage.getItem("token");
 
     try {
@@ -81,12 +88,114 @@ function App() {
         throw new Error(data.message || "Unable to add task");
       }
 
-      const newTask = data.task || data;
-
-      setTasks((prevTasks) => [...prevTasks, newTask]);
+      setTasks((prevTasks) => [...prevTasks, data.task]);
 
       setTitle("");
       setDescription("");
+      setError("");
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  // Start Editing
+  const handleStartEdit = (task) => {
+    setEditingTask(task);
+    setTitle(task.title);
+    setDescription(task.description);
+    setError("");
+  };
+
+  // Cancel Editing
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+    setTitle("");
+    setDescription("");
+    setError("");
+  };
+
+  // Update Task
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+
+    if (!title.trim() || !description.trim()) {
+      setError("Please enter title and description");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/${editingTask._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            completed: editingTask.completed
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Unable to update task");
+      }
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) =>
+          task._id === editingTask._id ? data.task : task
+        )
+      );
+
+      setEditingTask(null);
+      setTitle("");
+      setDescription("");
+      setError("");
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  // Toggle Completed
+  const handleToggleComplete = async (task) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/${task._id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            completed: !task.completed
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Unable to update task"
+        );
+      }
+
+      setTasks((prevTasks) =>
+        prevTasks.map((item) =>
+          item._id === task._id ? data.task : item
+        )
+      );
+
       setError("");
     } catch (error) {
       setError(error.message);
@@ -108,12 +217,18 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Unable to delete task");
+        throw new Error(
+          data.message || "Unable to delete task"
+        );
       }
 
       setTasks((prevTasks) =>
         prevTasks.filter((task) => task._id !== id)
       );
+
+      if (editingTask && editingTask._id === id) {
+        handleCancelEdit();
+      }
 
       setError("");
     } catch (error) {
@@ -129,6 +244,10 @@ function App() {
     setTasks([]);
     setIsAuthenticated(false);
     setShowSignup(false);
+    setEditingTask(null);
+    setTitle("");
+    setDescription("");
+    setError("");
   };
 
   // Login/Signup screen
@@ -181,7 +300,9 @@ function App() {
   }
 
   // Logged-in user
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const user = JSON.parse(
+    localStorage.getItem("user") || "null"
+  );
 
   return (
     <div className="app">
@@ -201,7 +322,13 @@ function App() {
           description={description}
           setTitle={setTitle}
           setDescription={setDescription}
-          onAdd={handleAddTask}
+          onAdd={
+            editingTask
+              ? handleUpdateTask
+              : handleAddTask
+          }
+          isEditing={Boolean(editingTask)}
+          onCancel={handleCancelEdit}
         />
 
         {loading && (
@@ -215,6 +342,8 @@ function App() {
         <TaskList
           tasks={tasks}
           onDelete={handleDeleteTask}
+          onEdit={handleStartEdit}
+          onToggleComplete={handleToggleComplete}
         />
       </main>
     </div>

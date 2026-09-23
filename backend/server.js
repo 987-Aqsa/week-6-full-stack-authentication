@@ -10,7 +10,14 @@ const protect = require("./middleware/authMiddleware");
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://week-6-full-stack-authentication-ak.vercel.app"
+];
+
+app.use(cors({
+  origin: allowedOrigins
+}));
 app.use(express.json());
 
 // Authentication routes
